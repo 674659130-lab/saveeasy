@@ -22,16 +22,20 @@ class SavingsGoal {
 }
 
 class SavingsTransaction {
+  String id;
   String title;
   String subtitle;
   double amount;
   String emoji;
+  DateTime date;
 
   SavingsTransaction({
+    required this.id,
     required this.title,
     required this.subtitle,
     required this.amount,
     required this.emoji,
+    required this.date,
   });
 }
 
@@ -52,7 +56,7 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   int _selectedIndex = 0;
   bool _isBalanceVisible = true;
-  double _totalSavings = 25450.00;
+  double _totalSavings = 25450.00; // Base Savings in THB
   int _userExp = 1850;
   int _userLevel = 5;
 
@@ -63,8 +67,47 @@ class _HomePageState extends State<HomePage> {
   bool _biometricsEnabled = false;
   String _reminderTime = '20:00 น.';
 
+  // Currency State
   String _currencySymbol = '฿';
+  String _currencyCode = 'THB';
   String _currencyName = 'บาทไทย (THB)';
+
+  // Currency Exchange Rates against THB Base (1 Unit in THB)
+  final Map<String, double> _exchangeRatesToTHB = {
+    'THB': 1.0,
+    'USD': 36.5,    // 1 USD = 36.5 THB
+    'EUR': 39.5,    // 1 EUR = 39.5 THB
+    'JPY': 0.235,   // 1 JPY = 0.235 THB
+    'KRW': 0.0263,  // 1 KRW = 0.0263 THB
+  };
+
+  // Convert Base THB Amount to Active Currency Value
+  double _getConvertedAmount(double amountInTHB) {
+    if (_currencyCode == 'THB') return amountInTHB;
+    final rate = _exchangeRatesToTHB[_currencyCode] ?? 1.0;
+    return amountInTHB / rate;
+  }
+
+  // Convert Input Amount in Active Currency Back to Base THB Value
+  double _convertToTHB(double amountInActiveCurrency) {
+    if (_currencyCode == 'THB') return amountInActiveCurrency;
+    final rate = _exchangeRatesToTHB[_currencyCode] ?? 1.0;
+    return amountInActiveCurrency * rate;
+  }
+
+  // Format Amount with Active Currency Symbol
+  String _formatAmount(double amountInTHB) {
+    final converted = _getConvertedAmount(amountInTHB);
+    if (_currencyCode == 'JPY' || _currencyCode == 'KRW') {
+      return '$_currencySymbol ${converted.toStringAsFixed(0)}';
+    } else {
+      return '$_currencySymbol ${converted.toStringAsFixed(2)}';
+    }
+  }
+
+  // Stats Chart State
+  String _selectedChartType = 'Bar'; // 'Bar', 'Line', 'Pie'
+  String _selectedTimeframe = 'Weekly'; // 'Weekly', 'Monthly', 'Yearly'
 
   @override
   void initState() {
@@ -100,24 +143,120 @@ class _HomePageState extends State<HomePage> {
     ),
   ];
 
+  // Rich Multi-Month Transactions Dataset (In THB Base)
   final List<SavingsTransaction> _transactions = [
+    // May 2024
     SavingsTransaction(
+      id: '1',
       title: 'หยอดกระปุกประจำวัน',
-      subtitle: 'วันนี้ • 10:30 น.',
+      subtitle: '20 พ.ค. 2567 • 10:30 น.',
       amount: 200.0,
       emoji: '🐷',
+      date: DateTime(2024, 5, 20, 10, 30),
     ),
     SavingsTransaction(
+      id: '2',
       title: 'ประหยัดค่ากาแฟ',
-      subtitle: 'เมื่อวาน • 15:45 น.',
+      subtitle: '19 พ.ค. 2567 • 15:45 น.',
       amount: 60.0,
       emoji: '☕',
+      date: DateTime(2024, 5, 19, 15, 45),
     ),
     SavingsTransaction(
+      id: '3',
       title: 'โบนัสเป้าหมายญี่ปุ่น',
-      subtitle: '15 พ.ค. • 09:00 น.',
+      subtitle: '15 พ.ค. 2567 • 09:00 น.',
       amount: 1000.0,
       emoji: '🎯',
+      date: DateTime(2024, 5, 15, 9, 0),
+    ),
+    SavingsTransaction(
+      id: '4',
+      title: 'หยอดออมซื้อ iPhone',
+      subtitle: '10 พ.ค. 2567 • 18:20 น.',
+      amount: 500.0,
+      emoji: '📱',
+      date: DateTime(2024, 5, 10, 18, 20),
+    ),
+
+    // April 2024
+    SavingsTransaction(
+      id: '5',
+      title: 'โบนัสออมสงกรานต์',
+      subtitle: '14 เม.ย. 2567 • 11:00 น.',
+      amount: 2000.0,
+      emoji: '🌸',
+      date: DateTime(2024, 4, 14, 11, 0),
+    ),
+    SavingsTransaction(
+      id: '6',
+      title: 'ประหยัดค่าอาหารนอกบ้าน',
+      subtitle: '12 เม.ย. 2567 • 19:30 น.',
+      amount: 150.0,
+      emoji: '🍱',
+      date: DateTime(2024, 4, 12, 19, 30),
+    ),
+    SavingsTransaction(
+      id: '7',
+      title: 'หยอดกระปุกหมูประจำสัปดาห์',
+      subtitle: '05 เม.ย. 2567 • 08:15 น.',
+      amount: 300.0,
+      emoji: '🐷',
+      date: DateTime(2024, 4, 5, 8, 15),
+    ),
+
+    // March 2024
+    SavingsTransaction(
+      id: '8',
+      title: 'เงินทอนจากการเดินทาง',
+      subtitle: '28 มี.ค. 2567 • 17:40 น.',
+      amount: 80.0,
+      emoji: '💼',
+      date: DateTime(2024, 3, 28, 17, 40),
+    ),
+    SavingsTransaction(
+      id: '9',
+      title: 'หยอดกระปุกเข้าเป้าหมาย',
+      subtitle: '18 มี.ค. 2567 • 12:10 น.',
+      amount: 1200.0,
+      emoji: '🎯',
+      date: DateTime(2024, 3, 18, 12, 10),
+    ),
+    SavingsTransaction(
+      id: '10',
+      title: 'หยอดกระปุกสะสมประจำวัน',
+      subtitle: '02 มี.ค. 2567 • 09:30 น.',
+      amount: 250.0,
+      emoji: '🐷',
+      date: DateTime(2024, 3, 2, 9, 30),
+    ),
+
+    // February 2024
+    SavingsTransaction(
+      id: '11',
+      title: 'อั่งเปาตรุษจีนออมเพิ่ม',
+      subtitle: '10 ก.พ. 2567 • 14:00 น.',
+      amount: 3000.0,
+      emoji: '🧧',
+      date: DateTime(2024, 2, 10, 14, 0),
+    ),
+    SavingsTransaction(
+      id: '12',
+      title: 'ประหยัดค่าชานมไข่มุก',
+      subtitle: '05 ก.พ. 2567 • 16:15 น.',
+      amount: 65.0,
+      emoji: '☕',
+      date: DateTime(2024, 2, 5, 16, 15),
+    ),
+
+    // January 2024
+    SavingsTransaction(
+      id: '13',
+      title: 'ของขวัญต้อนรับปีใหม่',
+      subtitle: '01 ม.ค. 2567 • 08:00 น.',
+      amount: 1500.0,
+      emoji: '🎉',
+      date: DateTime(2024, 1, 1, 8, 0),
     ),
   ];
 
@@ -197,6 +336,222 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
+  void _showFullHistorySheet() {
+    String selectedMonthFilter = 'ทั้งหมด';
+    String searchQuery = '';
+    final searchController = TextEditingController();
+
+    final monthsList = [
+      'ทั้งหมด',
+      'พฤษภาคม 2567',
+      'เมษายน 2567',
+      'มีนาคม 2567',
+      'กุมภาพันธ์ 2567',
+      'มกราคม 2567',
+    ];
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setSheetState) {
+          List<SavingsTransaction> filteredList = _transactions.where((tx) {
+            bool matchesMonth = true;
+            if (selectedMonthFilter == 'พฤษภาคม 2567') {
+              matchesMonth = tx.date.month == 5 && tx.date.year == 2024;
+            } else if (selectedMonthFilter == 'เมษายน 2567') {
+              matchesMonth = tx.date.month == 4 && tx.date.year == 2024;
+            } else if (selectedMonthFilter == 'มีนาคม 2567') {
+              matchesMonth = tx.date.month == 3 && tx.date.year == 2024;
+            } else if (selectedMonthFilter == 'กุมภาพันธ์ 2567') {
+              matchesMonth = tx.date.month == 2 && tx.date.year == 2024;
+            } else if (selectedMonthFilter == 'มกราคม 2567') {
+              matchesMonth = tx.date.month == 1 && tx.date.year == 2024;
+            }
+
+            bool matchesQuery = searchQuery.isEmpty ||
+                tx.title.toLowerCase().contains(searchQuery.toLowerCase());
+
+            return matchesMonth && matchesQuery;
+          }).toList();
+
+          double totalFilteredSavings = filteredList.fold(0.0, (sum, item) => sum + item.amount);
+
+          return Container(
+            height: MediaQuery.of(context).size.height * 0.85,
+            padding: const EdgeInsets.all(24),
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: Colors.grey[300],
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Row(
+                      children: [
+                        Text('📜', style: TextStyle(fontSize: 26)),
+                        SizedBox(width: 8),
+                        Text(
+                          'ประวัติการออมย้อนหลัง',
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF333333),
+                          ),
+                        ),
+                      ],
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close, color: Colors.grey),
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+
+                // Search Bar
+                TextField(
+                  controller: searchController,
+                  decoration: InputDecoration(
+                    hintText: 'ค้นหารายการออม...',
+                    prefixIcon: const Icon(Icons.search_rounded, color: Color(0xFFFF6B8B)),
+                    suffixIcon: searchQuery.isNotEmpty
+                        ? IconButton(
+                            icon: const Icon(Icons.clear, size: 18),
+                            onPressed: () {
+                              setSheetState(() {
+                                searchController.clear();
+                                searchQuery = '';
+                              });
+                            },
+                          )
+                        : null,
+                    filled: true,
+                    fillColor: const Color(0xFFF9F9F9),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+                  ),
+                  onChanged: (val) {
+                    setSheetState(() {
+                      searchQuery = val.trim();
+                    });
+                  },
+                ),
+
+                const SizedBox(height: 14),
+
+                // Month Selector
+                SizedBox(
+                  height: 38,
+                  child: ListView.builder(
+                    scrollDirection: Axis.horizontal,
+                    itemCount: monthsList.length,
+                    itemBuilder: (context, index) {
+                      final monthName = monthsList[index];
+                      final isSelected = monthName == selectedMonthFilter;
+
+                      return Padding(
+                        padding: const EdgeInsets.only(right: 8.0),
+                        child: ChoiceChip(
+                          label: Text(monthName),
+                          selected: isSelected,
+                          selectedColor: const Color(0xFFFF6B8B),
+                          labelStyle: TextStyle(
+                            color: isSelected ? Colors.white : const Color(0xFF555555),
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12,
+                          ),
+                          onSelected: (selected) {
+                            if (selected) {
+                              setSheetState(() {
+                                selectedMonthFilter = monthName;
+                              });
+                            }
+                          },
+                        ),
+                      );
+                    },
+                  ),
+                ),
+
+                const SizedBox(height: 16),
+
+                // Summary Badge
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFFF0F3),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: const Color(0xFFFFD6E0)),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('ช่วงเวลา: $selectedMonthFilter', style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                          const SizedBox(height: 2),
+                          Text('รวม ${_formatAmount(totalFilteredSavings)} (${filteredList.length} รายการ)', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(0xFFFF6B8B))),
+                        ],
+                      ),
+                      const Icon(Icons.savings_outlined, color: Color(0xFFFF6B8B)),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(height: 16),
+
+                // Filtered List
+                Expanded(
+                  child: filteredList.isEmpty
+                      ? Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Text('🔍🐷', style: TextStyle(fontSize: 48)),
+                              const SizedBox(height: 12),
+                              const Text('ไม่พบประวัติการออมในช่วงเวลานี้', style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold)),
+                            ],
+                          ),
+                        )
+                      : ListView.builder(
+                          physics: const BouncingScrollPhysics(),
+                          itemCount: filteredList.length,
+                          itemBuilder: (context, index) {
+                            final tx = filteredList[index];
+
+                            return _buildTransactionTile(
+                              title: tx.title,
+                              subtitle: tx.subtitle,
+                              amount: '+${_formatAmount(tx.amount)}',
+                              emoji: tx.emoji,
+                            );
+                          },
+                        ),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+
   void _showCurrencySelectorDialog() {
     final currencies = [
       {'symbol': '฿', 'code': 'THB', 'name': 'บาทไทย (฿ THB)'},
@@ -258,12 +613,13 @@ class _HomePageState extends State<HomePage> {
                     onTap: () {
                       setState(() {
                         _currencySymbol = c['symbol']!;
+                        _currencyCode = c['code']!;
                         _currencyName = c['name']!;
                       });
                       Navigator.pop(context);
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
-                          content: Text('เปลี่ยนสกุลเงินเป็น ${c['name']} เรียบร้อยแล้ว 💵✨'),
+                          content: Text('เปลี่ยนสกุลเงินเป็น ${c['name']} และแปลงค่าเงินเรียบร้อยแล้ว 💵✨'),
                           backgroundColor: const Color(0xFFFF6B8B),
                         ),
                       );
@@ -867,18 +1223,20 @@ class _HomePageState extends State<HomePage> {
                 height: 52,
                 child: ElevatedButton(
                   onPressed: () {
-                    final amount = double.tryParse(amountController.text) ?? 0.0;
-                    if (amount > 0) {
+                    final inputAmount = double.tryParse(amountController.text) ?? 0.0;
+                    if (inputAmount > 0) {
+                      final amountInTHB = _convertToTHB(inputAmount);
+                      final now = DateTime.now();
                       setState(() {
-                        _totalSavings += amount;
-                        _userExp += (amount / 10).round();
+                        _totalSavings += amountInTHB;
+                        _userExp += (amountInTHB / 10).round();
                         if (_userExp >= 2000) {
                           _userLevel += 1;
                           _userExp -= 2000;
                         }
 
                         if (goalTarget != null) {
-                          goalTarget.currentAmount += amount;
+                          goalTarget.currentAmount += amountInTHB;
                           if (goalTarget.currentAmount >= goalTarget.targetAmount) {
                             goalTarget.isCompleted = true;
                           }
@@ -888,10 +1246,12 @@ class _HomePageState extends State<HomePage> {
                         _transactions.insert(
                           0,
                           SavingsTransaction(
+                            id: DateTime.now().millisecondsSinceEpoch.toString(),
                             title: goalTarget != null ? 'ออมเข้า ${goalTarget.title}' : (noteText.isNotEmpty ? noteText : 'หยอดกระปุกหมู'),
-                            subtitle: 'วันนี้ • เมื่อครู่นี้',
-                            amount: amount,
+                            subtitle: '${now.day} พ.ค. ${now.year + 543} • ${now.hour}:${now.minute.toString().padLeft(2, '0')} น.',
+                            amount: amountInTHB,
                             emoji: goalTarget != null ? goalTarget.emoji : '🐷',
+                            date: now,
                           ),
                         );
                       });
@@ -899,7 +1259,7 @@ class _HomePageState extends State<HomePage> {
                       Navigator.pop(context);
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
-                          content: Text('หยอดกระปุกสำเร็จ +$_currencySymbol${amount.toStringAsFixed(2)} 🐷🎉'),
+                          content: Text('หยอดกระปุกสำเร็จ +${_formatAmount(amountInTHB)} 🐷🎉'),
                           backgroundColor: const Color(0xFFFF6B8B),
                           behavior: SnackBarBehavior.floating,
                           shape: RoundedRectangleBorder(
@@ -1023,9 +1383,10 @@ class _HomePageState extends State<HomePage> {
                 ElevatedButton(
                   onPressed: () {
                     final title = titleController.text.trim();
-                    final target = double.tryParse(targetController.text) ?? 0.0;
+                    final inputTarget = double.tryParse(targetController.text) ?? 0.0;
 
-                    if (title.isNotEmpty && target > 0) {
+                    if (title.isNotEmpty && inputTarget > 0) {
+                      final targetInTHB = _convertToTHB(inputTarget);
                       setState(() {
                         _goals.add(
                           SavingsGoal(
@@ -1033,7 +1394,7 @@ class _HomePageState extends State<HomePage> {
                             title: title,
                             emoji: selectedEmoji,
                             currentAmount: 0,
-                            targetAmount: target,
+                            targetAmount: targetInTHB,
                             color: const Color(0xFFFF6B8B),
                           ),
                         );
@@ -1425,7 +1786,7 @@ class _HomePageState extends State<HomePage> {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  _isBalanceVisible ? '$_currencySymbol ${_totalSavings.toStringAsFixed(2)}' : '$_currencySymbol ••••••••',
+                  _isBalanceVisible ? _formatAmount(_totalSavings) : '$_currencySymbol ••••••••',
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 32,
@@ -1446,7 +1807,7 @@ class _HomePageState extends State<HomePage> {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text(
-                            'เป้าหมายเดือนนี้ ($_currencySymbol 30,000)',
+                            'เป้าหมายเดือนนี้ (${_formatAmount(30000)})',
                             style: const TextStyle(
                               color: Colors.white,
                               fontSize: 12,
@@ -1540,22 +1901,27 @@ class _HomePageState extends State<HomePage> {
 
           const SizedBox(height: 20),
 
-          // Transactions Summary
-          const Row(
+          // Transactions Summary Header with "ดูประวัติย้อนหลังหลายเดือน" Link!
+          Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
+              const Text(
                 'ประวัติการออมล่าสุด',
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF333333)),
               ),
+              TextButton.icon(
+                onPressed: _showFullHistorySheet,
+                icon: const Icon(Icons.history_rounded, size: 16, color: Color(0xFFFF6B8B)),
+                label: const Text('ประวัติย้อนหลัง', style: TextStyle(color: Color(0xFFFF6B8B), fontWeight: FontWeight.bold)),
+              ),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 8),
 
-          ..._transactions.map((tx) => _buildTransactionTile(
+          ..._transactions.take(4).map((tx) => _buildTransactionTile(
                 title: tx.title,
                 subtitle: tx.subtitle,
-                amount: '+$_currencySymbol ${tx.amount.toStringAsFixed(2)}',
+                amount: '+${_formatAmount(tx.amount)}',
                 emoji: tx.emoji,
               )),
 
@@ -1607,7 +1973,7 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  // --- TAB 3: STATS TAB ---
+  // --- TAB 3: STATS TAB WITH GRAPH TYPE SELECTOR ---
   Widget _buildStatsTab() {
     return SingleChildScrollView(
       physics: const BouncingScrollPhysics(),
@@ -1619,8 +1985,8 @@ class _HomePageState extends State<HomePage> {
             'สถิติการออม 📊',
             style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Color(0xFF333333)),
           ),
-          const SizedBox(height: 8),
-          const Text('วิเคราะห์วินัยทางการเงินและยอดออมสะสมของคุณ', style: TextStyle(fontSize: 14, color: Color(0xFF777777))),
+          const SizedBox(height: 4),
+          const Text('วิเคราะห์วินัยทางการเงินและสถิติเปรียบเทียบ', style: TextStyle(fontSize: 14, color: Color(0xFF777777))),
           const SizedBox(height: 20),
 
           // Overview Stats Card
@@ -1636,50 +2002,287 @@ class _HomePageState extends State<HomePage> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
-                _buildStatItem('ออมเดือนนี้', '$_currencySymbol 8,450', const Color(0xFFFF6B8B)),
+                _buildStatItem('ออมเดือนนี้', _formatAmount(8450), const Color(0xFFFF6B8B)),
                 Container(width: 1, height: 40, color: Colors.grey[200]),
-                _buildStatItem('เฉลี่ย/วัน', '$_currencySymbol 281', const Color(0xFF9B51E0)),
+                _buildStatItem('เฉลี่ย/วัน', _formatAmount(281), const Color(0xFF9B51E0)),
                 Container(width: 1, height: 40, color: Colors.grey[200]),
                 _buildStatItem('ออมต่อเนื่อง', '14 วัน 🔥', const Color(0xFFF2994A)),
               ],
             ),
           ),
 
-          const SizedBox(height: 24),
+          const SizedBox(height: 20),
 
-          // Bar Chart Simulation
+          // Timeframe Choice Chips (Weekly, Monthly, Yearly)
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              _buildTimeframeChip('Weekly', 'รายสัปดาห์ 📅'),
+              const SizedBox(width: 8),
+              _buildTimeframeChip('Monthly', 'รายเดือน 🗓️'),
+              const SizedBox(width: 8),
+              _buildTimeframeChip('Yearly', 'รายปี 🏆'),
+            ],
+          ),
+
+          const SizedBox(height: 16),
+
+          // Chart Type Selector Buttons
           Container(
-            padding: const EdgeInsets.all(20),
+            padding: const EdgeInsets.all(6),
+            decoration: BoxDecoration(
+              color: const Color(0xFFFFF0F3),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: const Color(0xFFFFD6E0)),
+            ),
+            child: Row(
+              children: [
+                _buildChartTypeTab('Bar', '📊 กราฟแท่ง'),
+                _buildChartTypeTab('Line', '📈 แนวโน้ม'),
+                _buildChartTypeTab('Pie', '🥧 สัดส่วนหมวดหมู่'),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 20),
+
+          // Dynamic Chart View Card
+          Container(
+            padding: const EdgeInsets.all(22),
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(24),
               boxShadow: [
-                BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10, offset: const Offset(0, 4)),
+                BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 12, offset: const Offset(0, 4)),
               ],
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('กราฟการออมสัปดาห์นี้', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                const SizedBox(height: 24),
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceAround,
-                  crossAxisAlignment: CrossAxisAlignment.end,
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    _buildBarChartColumn('จ', 120, false),
-                    _buildBarChartColumn('อ', 80, false),
-                    _buildBarChartColumn('พ', 150, false),
-                    _buildBarChartColumn('พฤ', 200, false),
-                    _buildBarChartColumn('ศ', 90, false),
-                    _buildBarChartColumn('ส', 300, true),
-                    _buildBarChartColumn('อา', 250, true),
+                    Text(
+                      _getChartTitle(),
+                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF333333)),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFFF0F3),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        _selectedTimeframe,
+                        style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFFFF6B8B)),
+                      ),
+                    ),
                   ],
                 ),
+                const SizedBox(height: 24),
+
+                // Render Active Chart Type
+                if (_selectedChartType == 'Bar')
+                  _buildBarChartView()
+                else if (_selectedChartType == 'Line')
+                  _buildLineChartView()
+                else
+                  _buildPieChartView(),
               ],
             ),
           ),
+          const SizedBox(height: 20),
         ],
       ),
+    );
+  }
+
+  Widget _buildTimeframeChip(String key, String label) {
+    final isSelected = _selectedTimeframe == key;
+    return ChoiceChip(
+      label: Text(label),
+      selected: isSelected,
+      selectedColor: const Color(0xFFFF6B8B),
+      labelStyle: TextStyle(
+        color: isSelected ? Colors.white : const Color(0xFF555555),
+        fontSize: 12,
+        fontWeight: FontWeight.bold,
+      ),
+      onSelected: (val) {
+        if (val) setState(() => _selectedTimeframe = key);
+      },
+    );
+  }
+
+  Widget _buildChartTypeTab(String type, String label) {
+    final isSelected = _selectedChartType == type;
+    return Expanded(
+      child: GestureDetector(
+        onTap: () => setState(() => _selectedChartType = type),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 10),
+          decoration: BoxDecoration(
+            color: isSelected ? const Color(0xFFFF6B8B) : Colors.transparent,
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Center(
+            child: Text(
+              label,
+              style: TextStyle(
+                color: isSelected ? Colors.white : const Color(0xFF666666),
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  String _getChartTitle() {
+    if (_selectedChartType == 'Bar') {
+      return 'เปรียบเทียบการออม ($_selectedTimeframe)';
+    } else if (_selectedChartType == 'Line') {
+      return 'กราฟแสดงแนวโน้มเงินออมสะสม';
+    } else {
+      return 'สัดส่วนประหยัดเงินแยกตามประเภท';
+    }
+  }
+
+  // 1. BAR CHART VIEW
+  Widget _buildBarChartView() {
+    List<Map<String, dynamic>> barData = [];
+
+    if (_selectedTimeframe == 'Weekly') {
+      barData = [
+        {'label': 'จ', 'val': 120.0, 'highlight': false},
+        {'label': 'อ', 'val': 80.0, 'highlight': false},
+        {'label': 'พ', 'val': 150.0, 'highlight': false},
+        {'label': 'พฤ', 'val': 200.0, 'highlight': false},
+        {'label': 'ศ', 'val': 90.0, 'highlight': false},
+        {'label': 'ส', 'val': 300.0, 'highlight': true},
+        {'label': 'อา', 'val': 250.0, 'highlight': true},
+      ];
+    } else if (_selectedTimeframe == 'Monthly') {
+      barData = [
+        {'label': 'สัปดาห์ 1', 'val': 1200.0, 'highlight': false},
+        {'label': 'สัปดาห์ 2', 'val': 1800.0, 'highlight': false},
+        {'label': 'สัปดาห์ 3', 'val': 2500.0, 'highlight': true},
+        {'label': 'สัปดาห์ 4', 'val': 2950.0, 'highlight': false},
+      ];
+    } else {
+      barData = [
+        {'label': '2023', 'val': 15000.0, 'highlight': false},
+        {'label': '2024', 'val': 25450.0, 'highlight': true},
+      ];
+    }
+
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceAround,
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: barData.map((data) {
+        final double rawVal = data['val'] as double;
+        final double convertedVal = _getConvertedAmount(rawVal);
+        final double heightVal = rawVal / (_selectedTimeframe == 'Weekly' ? 2.5 : (_selectedTimeframe == 'Monthly' ? 25 : 200));
+        final bool isHighlight = data['highlight'] as bool;
+
+        return Column(
+          children: [
+            Text(
+              _currencyCode == 'JPY' || _currencyCode == 'KRW'
+                  ? convertedVal.toStringAsFixed(0)
+                  : convertedVal.toStringAsFixed(1),
+              style: const TextStyle(fontSize: 10, color: Colors.grey, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 6),
+            Container(
+              width: 18,
+              height: heightVal.clamp(20.0, 140.0),
+              decoration: BoxDecoration(
+                color: isHighlight ? const Color(0xFFFF6B8B) : const Color(0xFFFFD6E0),
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(data['label'] as String, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey)),
+          ],
+        );
+      }).toList(),
+    );
+  }
+
+  // 2. LINE CHART VIEW
+  Widget _buildLineChartView() {
+    return Column(
+      children: [
+        SizedBox(
+          height: 150,
+          width: double.infinity,
+          child: CustomPaint(
+            painter: LineChartTrendPainter(),
+          ),
+        ),
+        const SizedBox(height: 12),
+        const Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text('เริ่มต้น', style: TextStyle(fontSize: 11, color: Colors.grey)),
+            Text('แนวโน้มการออมเติบโตขึ้นต่อเนื่อง! 📈✨', style: TextStyle(fontSize: 12, color: Color(0xFFFF6B8B), fontWeight: FontWeight.bold)),
+            Text('ปัจจุบัน', style: TextStyle(fontSize: 11, color: Colors.grey)),
+          ],
+        ),
+      ],
+    );
+  }
+
+  // 3. PIE/DONUT CHART VIEW
+  Widget _buildPieChartView() {
+    final categories = [
+      {'title': '🍱 ค่าอาหาร & ขนม', 'percent': '45%', 'amountInTHB': 3800.0, 'color': const Color(0xFFFF6B8B)},
+      {'title': '☕ เครื่องดื่ม & กาแฟ', 'percent': '30%', 'amountInTHB': 2535.0, 'color': const Color(0xFF9B51E0)},
+      {'title': '🐷 หยอดกระปุกส่วนตัว', 'percent': '25%', 'amountInTHB': 2115.0, 'color': const Color(0xFFF2994A)},
+    ];
+
+    return Row(
+      children: [
+        SizedBox(
+          width: 110,
+          height: 110,
+          child: CustomPaint(
+            painter: DonutChartPainter(),
+          ),
+        ),
+        const SizedBox(width: 20),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: categories.map((cat) {
+              final color = cat['color'] as Color;
+              final amountInTHB = cat['amountInTHB'] as double;
+
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 10.0),
+                child: Row(
+                  children: [
+                    Container(width: 12, height: 12, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(cat['title'] as String, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                          Text('${cat['percent']} (${_formatAmount(amountInTHB)})', style: const TextStyle(fontSize: 11, color: Colors.grey)),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }).toList(),
+          ),
+        ),
+      ],
     );
   }
 
@@ -1906,23 +2509,6 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  Widget _buildBarChartColumn(String day, double height, bool isHighlight) {
-    return Column(
-      children: [
-        Container(
-          width: 16,
-          height: height / 2.5,
-          decoration: BoxDecoration(
-            color: isHighlight ? const Color(0xFFFF6B8B) : const Color(0xFFFFD6E0),
-            borderRadius: BorderRadius.circular(8),
-          ),
-        ),
-        const SizedBox(height: 8),
-        Text(day, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey)),
-      ],
-    );
-  }
-
   Widget _buildStatItem(String label, String value, Color color) {
     return Column(
       children: [
@@ -2045,11 +2631,11 @@ class _HomePageState extends State<HomePage> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'สะสมแล้ว: $_currencySymbol ${goal.currentAmount.toStringAsFixed(0)}',
+                'สะสมแล้ว: ${_formatAmount(goal.currentAmount)}',
                 style: const TextStyle(fontSize: 12, color: Color(0xFF888888)),
               ),
               Text(
-                'เป้าหมาย: $_currencySymbol ${goal.targetAmount.toStringAsFixed(0)}',
+                'เป้าหมาย: ${_formatAmount(goal.targetAmount)}',
                 style: const TextStyle(fontSize: 12, color: Color(0xFF888888)),
               ),
             ],
@@ -2148,4 +2734,103 @@ class _HomePageState extends State<HomePage> {
       ),
     );
   }
+}
+
+/// CustomPainter for Smooth Line Trend Chart
+class LineChartTrendPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final points = [
+      Offset(10, size.height * 0.85),
+      Offset(size.width * 0.2, size.height * 0.7),
+      Offset(size.width * 0.4, size.height * 0.55),
+      Offset(size.width * 0.6, size.height * 0.4),
+      Offset(size.width * 0.8, size.height * 0.25),
+      Offset(size.width - 10, size.height * 0.1),
+    ];
+
+    final path = Path();
+    path.moveTo(points[0].dx, points[0].dy);
+
+    for (int i = 0; i < points.length - 1; i++) {
+      final p1 = points[i];
+      final p2 = points[i + 1];
+      final controlPoint = Offset((p1.dx + p2.dx) / 2, (p1.dy + p2.dy) / 2);
+      path.quadraticBezierTo(p1.dx, p1.dy, controlPoint.dx, controlPoint.dy);
+    }
+    path.lineTo(points.last.dx, points.last.dy);
+
+    // Gradient Fill Path
+    final fillPath = Path.from(path);
+    fillPath.lineTo(size.width - 10, size.height);
+    fillPath.lineTo(10, size.height);
+    fillPath.close();
+
+    final fillPaint = Paint()
+      ..shader = LinearGradient(
+        colors: [
+          const Color(0xFFFF6B8B).withOpacity(0.35),
+          const Color(0xFFFF6B8B).withOpacity(0.0),
+        ],
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+      ).createShader(Rect.fromLTWH(0, 0, size.width, size.height));
+
+    canvas.drawPath(fillPath, fillPaint);
+
+    // Stroke Line
+    final linePaint = Paint()
+      ..color = const Color(0xFFFF6B8B)
+      ..strokeWidth = 3.5
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round;
+
+    canvas.drawPath(path, linePaint);
+
+    // Draw Points
+    final dotPaint = Paint()..color = Colors.white;
+    final dotOuterPaint = Paint()..color = const Color(0xFFFF6B8B);
+
+    for (var p in points) {
+      canvas.drawCircle(p, 6, dotOuterPaint);
+      canvas.drawCircle(p, 3.5, dotPaint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+/// CustomPainter for Category Donut Pie Chart
+class DonutChartPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = Offset(size.width / 2, size.height / 2);
+    final radius = size.width / 2;
+
+    final paint1 = Paint()
+      ..color = const Color(0xFFFF6B8B)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 22;
+
+    final paint2 = Paint()
+      ..color = const Color(0xFF9B51E0)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 22;
+
+    final paint3 = Paint()
+      ..color = const Color(0xFFF2994A)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 22;
+
+    final rect = Rect.fromCircle(center: center, radius: radius - 12);
+
+    // 45% (Food), 30% (Drinks), 25% (Personal Piggy)
+    canvas.drawArc(rect, -1.57, 2 * 3.14159 * 0.45, false, paint1);
+    canvas.drawArc(rect, -1.57 + (2 * 3.14159 * 0.45), 2 * 3.14159 * 0.30, false, paint2);
+    canvas.drawArc(rect, -1.57 + (2 * 3.14159 * 0.75), 2 * 3.14159 * 0.25, false, paint3);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
