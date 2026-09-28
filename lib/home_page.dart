@@ -336,6 +336,508 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
+  // --- EDIT TRANSACTION ---
+  void _showEditTransactionSheet(SavingsTransaction tx) {
+    final titleController = TextEditingController(text: tx.title);
+    final amountController = TextEditingController(
+      text: _getConvertedAmount(tx.amount).toStringAsFixed(
+        _currencyCode == 'JPY' || _currencyCode == 'KRW' ? 0 : 2,
+      ),
+    );
+    String selectedEmoji = tx.emoji;
+    final emojis = ['🐷', '☕', '🎯', '📱', '🌸', '🍱', '💼', '🧧', '🎉', '💸'];
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setSheetState) => Container(
+          padding: EdgeInsets.only(
+            left: 24,
+            right: 24,
+            top: 24,
+            bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+          ),
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Row(
+                    children: [
+                      Text('✏️', style: TextStyle(fontSize: 24)),
+                      SizedBox(width: 8),
+                      Text('แก้ไขรายการออมเงิน', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                    ],
+                  ),
+                  IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(context)),
+                ],
+              ),
+              const SizedBox(height: 16),
+              const Text('เลือกสัญลักษณ์ (Emoji)', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.grey)),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                children: emojis.map((e) {
+                  final isSel = e == selectedEmoji;
+                  return GestureDetector(
+                    onTap: () => setSheetState(() => selectedEmoji = e),
+                    child: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: isSel ? const Color(0xFFFFD6E0) : const Color(0xFFF5F5F5),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: isSel ? const Color(0xFFFF6B8B) : Colors.transparent, width: 2),
+                      ),
+                      child: Text(e, style: const TextStyle(fontSize: 22)),
+                    ),
+                  );
+                }).toList(),
+              ),
+              const SizedBox(height: 16),
+              const Text('ชื่อรายการ / โน้ต', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.grey)),
+              const SizedBox(height: 8),
+              TextField(
+                controller: titleController,
+                decoration: InputDecoration(
+                  filled: true,
+                  fillColor: const Color(0xFFF9F9F9),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                ),
+              ),
+              const SizedBox(height: 16),
+              const Text('จำนวนเงิน', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.grey)),
+              const SizedBox(height: 8),
+              TextField(
+                controller: amountController,
+                keyboardType: TextInputType.number,
+                style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFFFF6B8B)),
+                decoration: InputDecoration(
+                  prefixText: '$_currencySymbol ',
+                  filled: true,
+                  fillColor: const Color(0xFFFFF0F3),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                ),
+              ),
+              const SizedBox(height: 24),
+              SizedBox(
+                width: double.infinity,
+                height: 52,
+                child: ElevatedButton(
+                  onPressed: () {
+                    final newTitle = titleController.text.trim();
+                    final inputAmount = double.tryParse(amountController.text) ?? 0.0;
+
+                    if (newTitle.isNotEmpty && inputAmount > 0) {
+                      final newAmountInTHB = _convertToTHB(inputAmount);
+                      final diff = newAmountInTHB - tx.amount;
+
+                      setState(() {
+                        _totalSavings += diff;
+                        tx.title = newTitle;
+                        tx.amount = newAmountInTHB;
+                        tx.emoji = selectedEmoji;
+                      });
+
+                      Navigator.pop(context);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('แก้ไขรายการออมเงินเรียบร้อยแล้ว! ✨'),
+                          backgroundColor: Color(0xFFFF6B8B),
+                        ),
+                      );
+                    }
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFFF6B8B),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  ),
+                  child: const Text('บันทึกการแก้ไข 💖', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // --- DELETE TRANSACTION ---
+  void _showDeleteTransactionDialog(SavingsTransaction tx) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        title: const Row(
+          children: [
+            Text('🗑️', style: TextStyle(fontSize: 24)),
+            SizedBox(width: 8),
+            Text('ลบรายการออม'),
+          ],
+        ),
+        content: Text('คุณต้องการลบรายการ "${tx.title}" (${_formatAmount(tx.amount)}) หรือไม่?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('ยกเลิก', style: TextStyle(color: Colors.grey))),
+          ElevatedButton(
+            onPressed: () {
+              setState(() {
+                _totalSavings -= tx.amount;
+                _transactions.removeWhere((item) => item.id == tx.id);
+              });
+              Navigator.pop(context);
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('ลบรายการ "${tx.title}" เรียบร้อยแล้ว'),
+                  backgroundColor: Colors.redAccent,
+                ),
+              );
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.redAccent,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            child: const Text('ลบรายการ', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // --- MONEY TRANSFER FEATURE ---
+  void _showTransferDialog() {
+    final recipientNameController = TextEditingController();
+    final accountNoController = TextEditingController();
+    final amountController = TextEditingController();
+    final memoController = TextEditingController();
+
+    String selectedBank = 'พร้อมเพย์ (PromptPay)';
+    final banks = [
+      {'name': 'พร้อมเพย์ (PromptPay)', 'color': const Color(0xFF00B900)},
+      {'name': 'กสิกรไทย (KBank)', 'color': const Color(0xFF138043)},
+      {'name': 'ไทยพาณิชย์ (SCB)', 'color': const Color(0xFF4E2A81)},
+      {'name': 'กรุงเทพ (BBL)', 'color': const Color(0xFF1E3A8A)},
+      {'name': 'กรุงไทย (KTB)', 'color': const Color(0xFF00A3E0)},
+    ];
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setSheetState) => Container(
+          padding: EdgeInsets.only(
+            left: 24,
+            right: 24,
+            top: 24,
+            bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+          ),
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+          ),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Row(
+                      children: [
+                        Text('💸', style: TextStyle(fontSize: 26)),
+                        SizedBox(width: 8),
+                        Text('โอนเงินออกจากกระปุก', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                      ],
+                    ),
+                    IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(context)),
+                  ],
+                ),
+                const SizedBox(height: 16),
+
+                // Bank Selector
+                const Text('เลือกธนาคาร / บัญชีปลายทาง', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.grey)),
+                const SizedBox(height: 8),
+                SizedBox(
+                  height: 40,
+                  child: ListView.builder(
+                    scrollDirection: Axis.horizontal,
+                    itemCount: banks.length,
+                    itemBuilder: (context, index) {
+                      final b = banks[index];
+                      final bName = b['name'] as String;
+                      final bColor = b['color'] as Color;
+                      final isSel = bName == selectedBank;
+
+                      return Padding(
+                        padding: const EdgeInsets.only(right: 8.0),
+                        child: ChoiceChip(
+                          label: Text(bName),
+                          selected: isSel,
+                          selectedColor: bColor,
+                          labelStyle: TextStyle(color: isSel ? Colors.white : Colors.black87, fontWeight: FontWeight.bold, fontSize: 12),
+                          onSelected: (val) {
+                            if (val) setSheetState(() => selectedBank = bName);
+                          },
+                        ),
+                      );
+                    },
+                  ),
+                ),
+
+                const SizedBox(height: 16),
+
+                // Account No
+                const Text('เลขที่บัญชี / เบอร์พร้อมเพย์', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.grey)),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: accountNoController,
+                  keyboardType: TextInputType.number,
+                  decoration: InputDecoration(
+                    hintText: 'xxx-x-xxxxx-x หรือ เบอร์โทรศัพท์',
+                    prefixIcon: const Icon(Icons.account_balance_wallet_outlined, color: Color(0xFFFF6B8B)),
+                    filled: true,
+                    fillColor: const Color(0xFFF9F9F9),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                  ),
+                ),
+
+                const SizedBox(height: 16),
+
+                // Recipient Name
+                const Text('ชื่อผู้รับเงิน', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.grey)),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: recipientNameController,
+                  decoration: InputDecoration(
+                    hintText: 'นายสมชาย ใจดี',
+                    prefixIcon: const Icon(Icons.person_outline, color: Color(0xFFFF6B8B)),
+                    filled: true,
+                    fillColor: const Color(0xFFF9F9F9),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                  ),
+                ),
+
+                const SizedBox(height: 16),
+
+                // Amount
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text('จำนวนเงินที่ต้องการโอน', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.grey)),
+                    Text('คงเหลือ: ${_formatAmount(_totalSavings)}', style: const TextStyle(fontSize: 12, color: Color(0xFFFF6B8B), fontWeight: FontWeight.bold)),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: amountController,
+                  keyboardType: TextInputType.number,
+                  style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.redAccent),
+                  decoration: InputDecoration(
+                    hintText: '0.00',
+                    prefixText: '$_currencySymbol ',
+                    prefixStyle: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.redAccent),
+                    filled: true,
+                    fillColor: const Color(0xFFFFF0F0),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+                  ),
+                ),
+
+                const SizedBox(height: 16),
+
+                // Memo
+                const Text('บันทึกช่วยจำ (Memo)', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.grey)),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: memoController,
+                  decoration: InputDecoration(
+                    hintText: 'เช่น ค่ากินข้าวมื้อเย็น, ถอนเงินใช้นอกบ้าน',
+                    filled: true,
+                    fillColor: const Color(0xFFF9F9F9),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                  ),
+                ),
+
+                const SizedBox(height: 24),
+
+                SizedBox(
+                  width: double.infinity,
+                  height: 52,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      final inputAmount = double.tryParse(amountController.text) ?? 0.0;
+                      final recipientName = recipientNameController.text.trim();
+                      final accountNo = accountNoController.text.trim();
+
+                      if (inputAmount <= 0) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('กรุณากรอกจำนวนเงินโอนที่ถูกต้อง'), backgroundColor: Colors.redAccent),
+                        );
+                        return;
+                      }
+
+                      final transferAmountInTHB = _convertToTHB(inputAmount);
+
+                      if (transferAmountInTHB > _totalSavings) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('ยอดเงินออมในกระปุกไม่เพียงพอ!'), backgroundColor: Colors.redAccent),
+                        );
+                        return;
+                      }
+
+                      if (recipientName.isEmpty || accountNo.isEmpty) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('กรุณากรอกข้อมูลผู้รับเงินและเลขบัญชีให้ครบถ้วน'), backgroundColor: Colors.redAccent),
+                        );
+                        return;
+                      }
+
+                      final now = DateTime.now();
+                      final memoText = memoController.text.trim();
+
+                      setState(() {
+                        _totalSavings -= transferAmountInTHB;
+
+                        _transactions.insert(
+                          0,
+                          SavingsTransaction(
+                            id: DateTime.now().millisecondsSinceEpoch.toString(),
+                            title: 'โอนเงินให้ $recipientName',
+                            subtitle: '${now.day} พ.ค. ${now.year + 543} • ${now.hour}:${now.minute.toString().padLeft(2, '0')} น.',
+                            amount: transferAmountInTHB,
+                            emoji: '💸',
+                            date: now,
+                          ),
+                        );
+                      });
+
+                      Navigator.pop(context);
+
+                      // Show Transfer Slip Receipt!
+                      _showTransferSlipSheet(
+                        recipientName: recipientName,
+                        accountNo: accountNo,
+                        bankName: selectedBank,
+                        amountInTHB: transferAmountInTHB,
+                        memo: memoText,
+                        dateTime: now,
+                      );
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFFFF6B8B),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      elevation: 3,
+                    ),
+                    child: const Text('ยืนยันการโอนเงิน 💸', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // --- OFFICIAL SAVEEASY TRANSFER SLIP ---
+  void _showTransferSlipSheet({
+    required String recipientName,
+    required String accountNo,
+    required String bankName,
+    required double amountInTHB,
+    required String memo,
+    required DateTime dateTime,
+  }) {
+    final refNo = 'SE${dateTime.millisecondsSinceEpoch.toString().substring(3, 11)}';
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        padding: const EdgeInsets.all(24),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFFF0F3),
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(color: const Color(0xFFFFD6E0), width: 1.5),
+              ),
+              child: Column(
+                children: [
+                  const Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text('🐷', style: TextStyle(fontSize: 28)),
+                      SizedBox(width: 8),
+                      Text('SaveEasy Slip', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFFD81B60))),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  const Icon(Icons.check_circle_rounded, color: Color(0xFF27AE60), size: 52),
+                  const SizedBox(height: 8),
+                  const Text('โอนเงินสำเร็จแล้ว!', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF27AE60))),
+                  const SizedBox(height: 4),
+                  Text(_formatAmount(amountInTHB), style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Color(0xFF333333))),
+                  const SizedBox(height: 16),
+                  const Divider(),
+                  const SizedBox(height: 12),
+
+                  _buildSlipRow('รหัสอ้างอิง Ref:', refNo),
+                  _buildSlipRow('วัน-เวลา:', '${dateTime.day} พ.ค. ${dateTime.year + 543} ${dateTime.hour}:${dateTime.minute.toString().padLeft(2, '0')} น.'),
+                  _buildSlipRow('ผู้โอน:', '$_currentUserName (SaveEasy)'),
+                  _buildSlipRow('ผู้รับเงิน:', '$recipientName ($bankName)'),
+                  _buildSlipRow('เลขบัญชีผู้รับ:', accountNo),
+                  if (memo.isNotEmpty) _buildSlipRow('บันทึกช่วยจำ:', memo),
+                ],
+              ),
+            ),
+            const SizedBox(height: 20),
+            SizedBox(
+              width: double.infinity,
+              height: 50,
+              child: ElevatedButton(
+                onPressed: () => Navigator.pop(context),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFFF6B8B),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                ),
+                child: const Text('เสร็จสิ้น / บันทึกสลิป 💖', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSlipRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4.0),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label, style: const TextStyle(fontSize: 12, color: Colors.grey)),
+          Text(value, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Color(0xFF333333))),
+        ],
+      ),
+    );
+  }
+
   void _showFullHistorySheet() {
     String selectedMonthFilter = 'ทั้งหมด';
     String searchQuery = '';
@@ -522,10 +1024,10 @@ class _HomePageState extends State<HomePage> {
                       ? Center(
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              const Text('🔍🐷', style: TextStyle(fontSize: 48)),
-                              const SizedBox(height: 12),
-                              const Text('ไม่พบประวัติการออมในช่วงเวลานี้', style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold)),
+                            children: const [
+                              Text('🔍🐷', style: TextStyle(fontSize: 48)),
+                              SizedBox(height: 12),
+                              Text('ไม่พบประวัติการออมในช่วงเวลานี้', style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold)),
                             ],
                           ),
                         )
@@ -535,12 +1037,7 @@ class _HomePageState extends State<HomePage> {
                           itemBuilder: (context, index) {
                             final tx = filteredList[index];
 
-                            return _buildTransactionTile(
-                              title: tx.title,
-                              subtitle: tx.subtitle,
-                              amount: '+${_formatAmount(tx.amount)}',
-                              emoji: tx.emoji,
-                            );
+                            return _buildTransactionTile(tx);
                           },
                         ),
                 ),
@@ -1843,35 +2340,47 @@ class _HomePageState extends State<HomePage> {
 
           const SizedBox(height: 24),
 
-          // Quick Action Buttons
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              _buildActionButton(
-                icon: Icons.add_circle_outline_rounded,
-                label: 'หยอดกระปุก',
-                color: const Color(0xFFFF6B8B),
-                onTap: () => _showAddDepositDialog(),
-              ),
-              _buildActionButton(
-                icon: Icons.flag_outlined,
-                label: 'สร้างเป้าหมาย',
-                color: const Color(0xFF9B51E0),
-                onTap: _showAddGoalDialog,
-              ),
-              _buildActionButton(
-                icon: Icons.bar_chart_rounded,
-                label: 'สรุปสถิติ',
-                color: const Color(0xFF2F80ED),
-                onTap: () => setState(() => _selectedIndex = 3),
-              ),
-              _buildActionButton(
-                icon: Icons.card_giftcard_rounded,
-                label: 'ภารกิจหมู',
-                color: const Color(0xFFF2994A),
-                onTap: _showQuestsDialog,
-              ),
-            ],
+          // Quick Action Buttons (หยอดกระปุก, โอนเงิน, สร้างเป้าหมาย, สรุปสถิติ, ภารกิจหมู)
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                _buildActionButton(
+                  icon: Icons.add_circle_outline_rounded,
+                  label: 'หยอดกระปุก',
+                  color: const Color(0xFFFF6B8B),
+                  onTap: () => _showAddDepositDialog(),
+                ),
+                const SizedBox(width: 16),
+                _buildActionButton(
+                  icon: Icons.swap_horiz_rounded,
+                  label: 'โอนเงิน',
+                  color: const Color(0xFF27AE60),
+                  onTap: _showTransferDialog,
+                ),
+                const SizedBox(width: 16),
+                _buildActionButton(
+                  icon: Icons.flag_outlined,
+                  label: 'เป้าหมาย',
+                  color: const Color(0xFF9B51E0),
+                  onTap: _showAddGoalDialog,
+                ),
+                const SizedBox(width: 16),
+                _buildActionButton(
+                  icon: Icons.bar_chart_rounded,
+                  label: 'สรุปสถิติ',
+                  color: const Color(0xFF2F80ED),
+                  onTap: () => setState(() => _selectedIndex = 3),
+                ),
+                const SizedBox(width: 16),
+                _buildActionButton(
+                  icon: Icons.card_giftcard_rounded,
+                  label: 'ภารกิจหมู',
+                  color: const Color(0xFFF2994A),
+                  onTap: _showQuestsDialog,
+                ),
+              ],
+            ),
           ),
 
           const SizedBox(height: 28),
@@ -1918,12 +2427,7 @@ class _HomePageState extends State<HomePage> {
           ),
           const SizedBox(height: 8),
 
-          ..._transactions.take(4).map((tx) => _buildTransactionTile(
-                title: tx.title,
-                subtitle: tx.subtitle,
-                amount: '+${_formatAmount(tx.amount)}',
-                emoji: tx.emoji,
-              )),
+          ..._transactions.take(4).map((tx) => _buildTransactionTile(tx)),
 
           const SizedBox(height: 20),
         ],
@@ -2662,12 +3166,9 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  Widget _buildTransactionTile({
-    required String title,
-    required String subtitle,
-    required String amount,
-    required String emoji,
-  }) {
+  Widget _buildTransactionTile(SavingsTransaction tx) {
+    final isTransfer = tx.title.startsWith('โอนเงิน') || tx.amount < 0;
+
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.all(14),
@@ -2685,50 +3186,93 @@ class _HomePageState extends State<HomePage> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
+          Expanded(
+            child: Row(
+              children: [
+                Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: isTransfer ? const Color(0xFFFFF0F0) : const Color(0xFFFFF0F3),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: Center(
+                    child: Text(tx.emoji, style: const TextStyle(fontSize: 22)),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        tx.title,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF333333),
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        tx.subtitle,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: Color(0xFF999999),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
           Row(
             children: [
-              Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFFFF0F3),
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                child: Center(
-                  child: Text(emoji, style: const TextStyle(fontSize: 22)),
+              Text(
+                isTransfer ? '-${_formatAmount(tx.amount)}' : '+${_formatAmount(tx.amount)}',
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.bold,
+                  color: isTransfer ? Colors.redAccent : const Color(0xFF27AE60),
                 ),
               ),
-              const SizedBox(width: 12),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: const TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF333333),
+              PopupMenuButton<String>(
+                icon: const Icon(Icons.more_vert_rounded, size: 18, color: Colors.grey),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                onSelected: (value) {
+                  if (value == 'edit') {
+                    _showEditTransactionSheet(tx);
+                  } else if (value == 'delete') {
+                    _showDeleteTransactionDialog(tx);
+                  }
+                },
+                itemBuilder: (context) => [
+                  const PopupMenuItem(
+                    value: 'edit',
+                    child: Row(
+                      children: [
+                        Icon(Icons.edit_outlined, size: 18, color: Color(0xFFFF6B8B)),
+                        SizedBox(width: 8),
+                        Text('แก้ไขรายการ', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                      ],
                     ),
                   ),
-                  const SizedBox(height: 2),
-                  Text(
-                    subtitle,
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: Color(0xFF999999),
+                  const PopupMenuItem(
+                    value: 'delete',
+                    child: Row(
+                      children: [
+                        Icon(Icons.delete_outline_rounded, size: 18, color: Colors.redAccent),
+                        SizedBox(width: 8),
+                        Text('ลบรายการ', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.redAccent)),
+                      ],
                     ),
                   ),
                 ],
               ),
             ],
-          ),
-          Text(
-            amount,
-            style: const TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.bold,
-              color: Color(0xFF27AE60),
-            ),
           ),
         ],
       ),
