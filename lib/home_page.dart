@@ -263,11 +263,11 @@ class _HomePageState extends State<HomePage> {
   Widget _buildAvatarWidget({required double size, required double fontSize}) {
     if (_profileImageUrl != null &&
         _profileImageUrl!.trim().isNotEmpty &&
-        _profileImageUrl!.startsWith('http')) {
+        _profileImageUrl!.trim().startsWith('http')) {
       return ClipRRect(
         borderRadius: BorderRadius.circular(size / 2),
         child: Image.network(
-          _profileImageUrl!,
+          _profileImageUrl!.trim(),
           width: size,
           height: size,
           fit: BoxFit.cover,
@@ -1024,10 +1024,10 @@ class _HomePageState extends State<HomePage> {
                       ? Center(
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
-                            children: const [
-                              Text('🔍🐷', style: TextStyle(fontSize: 48)),
-                              SizedBox(height: 12),
-                              Text('ไม่พบประวัติการออมในช่วงเวลานี้', style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold)),
+                            children: [
+                              const Text('🔍🐷', style: TextStyle(fontSize: 48)),
+                              const SizedBox(height: 12),
+                              const Text('ไม่พบประวัติการออมในช่วงเวลานี้', style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold)),
                             ],
                           ),
                         )
@@ -1139,10 +1139,10 @@ class _HomePageState extends State<HomePage> {
     String? tempImageUrl = _profileImageUrl;
 
     final presetImages = [
-      {'name': 'หมูสีชมพู 🌸', 'url': 'https://images.unsplash.com/photo-1516467508483-a7212febe31a?w=200'},
-      {'name': 'ลูกแมวน้อย 🐱', 'url': 'https://images.unsplash.com/photo-1533738363-b7f9aef128ce?w=200'},
-      {'name': 'สุนัขน่ารัก 🐶', 'url': 'https://images.unsplash.com/photo-1543466835-00a7907e9de1?w=200'},
-      {'name': 'กระต่ายป่า 🐰', 'url': 'https://images.unsplash.com/photo-1585110396000-c9ffd4e4b308?w=200'},
+      {'name': 'หมูสีชมพู 🌸', 'url': 'https://images.unsplash.com/photo-1516467508483-a7212febe31a?w=400'},
+      {'name': 'ลูกแมวน้อย 🐱', 'url': 'https://images.unsplash.com/photo-1533738363-b7f9aef128ce?w=400'},
+      {'name': 'สุนัขน่ารัก 🐶', 'url': 'https://images.unsplash.com/photo-1543466835-00a7907e9de1?w=400'},
+      {'name': 'กระต่ายป่า 🐰', 'url': 'https://images.unsplash.com/photo-1585110396000-c9ffd4e4b308?w=400'},
     ];
 
     showModalBottomSheet(
@@ -1290,6 +1290,16 @@ class _HomePageState extends State<HomePage> {
                           fillColor: const Color(0xFFF9F9F9),
                           border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
                         ),
+                        onChanged: (val) {
+                          setSheetState(() {
+                            final text = val.trim();
+                            if (text.isNotEmpty && (text.startsWith('http://') || text.startsWith('https://'))) {
+                              tempImageUrl = text;
+                            } else if (text.isEmpty) {
+                              tempImageUrl = null;
+                            }
+                          });
+                        },
                       ),
                     ),
                     const SizedBox(width: 8),
@@ -1297,7 +1307,7 @@ class _HomePageState extends State<HomePage> {
                       onPressed: () {
                         setSheetState(() {
                           final text = imageUrlController.text.trim();
-                          if (text.isNotEmpty && text.startsWith('http')) {
+                          if (text.isNotEmpty && (text.startsWith('http://') || text.startsWith('https://'))) {
                             tempImageUrl = text;
                           } else {
                             tempImageUrl = null;
@@ -1365,11 +1375,16 @@ class _HomePageState extends State<HomePage> {
                   child: ElevatedButton(
                     onPressed: () {
                       final newName = nameController.text.trim();
+                      final inputUrl = imageUrlController.text.trim();
+                      final finalImageUrl = (inputUrl.isNotEmpty && (inputUrl.startsWith('http://') || inputUrl.startsWith('https://')))
+                          ? inputUrl
+                          : tempImageUrl;
+
                       if (newName.isNotEmpty) {
                         setState(() {
                           _currentUserName = newName;
                           _userAvatarEmoji = selectedEmoji;
-                          _profileImageUrl = tempImageUrl;
+                          _profileImageUrl = finalImageUrl;
                         });
                         Navigator.pop(context);
                         ScaffoldMessenger.of(context).showSnackBar(
